@@ -1,0 +1,46 @@
+version: 2
+
+jobs:
+  build:
+    working_directory: /go/src/github.com/okamos/pqueue
+    docker:
+      - image: circleci/golang:1.10
+      - image: postgres:10.2-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test
+    steps:
+      - checkout
+
+      - run:
+          name: setup
+          command: sudo apt-get install -y postgresql-client-9.6
+
+      - restore_cache:
+          key: dep-cache-{{ checksum "Gopkg.lock" }}
+
+      - run:
+          name: install dependencies
+          command: make setup
+
+      - save_cache:
+          key: dep-cache-{{ checksum "Gopkg.lock" }}
+          paths:
+            - ./vendor
+
+      - run:
+          name: lint
+          command: make lint
+
+      - run:
+          name: check dead codes
+          command: make vet
+
+      - run:
+          name: create table
+          command: psql -h localhost -U postgres test -e < data/schema/job.sql
+
+      - run:
+          name: test
+          command: make test
+
