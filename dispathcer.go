@@ -2,7 +2,6 @@ package pqueue
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"sync"
 	"time"
@@ -10,7 +9,7 @@ import (
 
 // Worker is an interface of a worker
 type Worker interface {
-	Run(payload json.RawMessage) bool
+	Run(job Job) bool
 }
 
 // NewDispatcher creates and returns dispatcher
@@ -74,7 +73,7 @@ func (d *Dispatcher) Start(interval time.Duration) {
 
 					c := make(chan bool)
 					go func() {
-						c <- d.worker.Run(job.Payload)
+						c <- d.worker.Run(job)
 					}()
 
 					select {

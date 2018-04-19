@@ -13,9 +13,9 @@ type payloadJSON struct {
 
 type worker struct{}
 
-func (w worker) Run(payload json.RawMessage) bool {
+func (w worker) Run(job Job) bool {
 	var p payloadJSON
-	err := json.Unmarshal(payload, &p)
+	err := json.Unmarshal(job.Payload, &p)
 	if err != nil {
 		return false
 	}

@@ -18,18 +18,18 @@ import (
 )
 
 type payloadJSON struct {
-	Second int `json:"second"`
+	Duration int `json:"duration"`
 }
 
 type worker struct{}
 
-func (w worker) Run(payload json.RawMessage) bool {
+func (w worker) Run(job pqueue.Job) bool {
 	var p payloadJSON
-	err := json.Unmarshal(payload, &p)
+	err := json.Unmarshal(job.Payload, &p)
 	if err != nil {
 		return false
 	}
-	time.Sleep(time.Duration(p.Second) * time.Second)
+	time.Sleep(time.Duration(p.Duration) * time.Second)
 	return true
 }
 
