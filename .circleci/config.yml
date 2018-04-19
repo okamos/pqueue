@@ -5,10 +5,12 @@ jobs:
     working_directory: /go/src/github.com/okamos/pqueue
     docker:
       - image: circleci/golang:1.10
+        environment:
+          
       - image: postgres:10.2-alpine
         environment:
           POSTGRES_USER: postgres
-          POSTGRES_DB: test
+          POSTGRES_DB: postgres
     steps:
       - checkout
 
@@ -38,7 +40,7 @@ jobs:
 
       - run:
           name: create table
-          command: psql -h localhost -U postgres test -e < data/schema/job.sql
+          command: psql -h localhost -U postgres -e < data/schema/job.sql
 
       - run:
           name: test

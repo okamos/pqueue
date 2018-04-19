@@ -145,6 +145,8 @@ func (j *Job) Complete() {
 		log.Print(err)
 		return
 	}
+	j.Status = 1
+	j.RunCount++
 
 	log.Printf("Processed job %s", j.Payload)
 }
@@ -165,6 +167,7 @@ func (j *Job) Fail() {
 			log.Print(err)
 			return
 		}
+		j.Status = 2
 	} else {
 		delay := runCount*runCount*runCount*runCount + j.Timeout + j.RetryDelay + 15
 		stmt, err := db.Prepare(`UPDATE "job" SET run_count = $2, retry_delay = $3, run_after = $4, grabbed = null WHERE id = $1 RETURNING pg_advisory_unlock($1)`)
@@ -178,7 +181,10 @@ func (j *Job) Fail() {
 			log.Print(err)
 			return
 		}
+		j.RetryDelay = delay
+		j.RunAfter = j.RunAfter.Add(time.Duration(delay) * time.Second)
 	}
+	j.RunCount++
 	log.Printf("Failed job id: %d, payload: %s", j.ID, j.Payload)
 }
 

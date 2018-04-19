@@ -128,40 +128,23 @@ func TestFailJob(t *testing.T) {
 	job.RunAfter = time.Now().Add(-4 * time.Hour)
 	job.Save()
 	job.Fail()
-	jobs, _ = LockJobs(1)
 
-	if len(jobs) != 1 {
-		t.Errorf("processing jobs expect 1, actual %d", len(jobs))
+	if job.Status != 0 {
+		t.Error("Job.Status should be 0")
 	}
-	for _, job := range jobs {
-		if job.Status != 0 {
-			t.Error("Job.Status should be 0")
-		}
-		if job.RunCount != 1 {
-			t.Error("Job.RunCount should be 1")
-		}
-		job.Fail()
+	if job.RunCount != 1 {
+		t.Error("Job.RunCount should be 1")
 	}
-	jobs, _ = LockJobs(1)
+	job.Fail()
 
-	if len(jobs) != 1 {
-		t.Errorf("processing jobs expect 1, actual %d", len(jobs))
+	if job.Status != 0 {
+		t.Error("Job.Status should be 0")
 	}
-	for _, job := range jobs {
-		if job.Status != 0 {
-			t.Error("Job.Status should be 0")
-		}
-		if job.RunCount != 2 {
-			t.Error("Job.RunCount should be 2")
-		}
-		job.Fail()
+	if job.RunCount != 2 {
+		t.Error("Job.RunCount should be 2")
 	}
+	job.Fail()
 
-	jobs, _ = LockJobs(1)
-
-	if len(jobs) != 0 {
-		t.Errorf("processing jobs expect 1, actual %d", len(jobs))
-	}
 	jobs, _ = FailedJobs(time.Time{}, 0)
 	if len(jobs) != 1 {
 		t.Errorf("failed jobs expect 1, actual %d", len(jobs))

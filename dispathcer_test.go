@@ -27,44 +27,46 @@ func TestStart(t *testing.T) {
 	TruncateJob()
 
 	w := worker{}
-	d := NewDispatcher(2, w)
 	for i := 0; i < 4; i++ {
-		j := NewJob("test", []byte(`{"duration": 100}`), 5)
+		j := NewJob("test", []byte(`{"duration": 50}`), 5)
 		j.Save()
 	}
 
+	d := NewDispatcher(2, w)
 	d.Start(100)
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(110 * time.Millisecond)
 	jobs, _ := ProcessingJobs()
 	if len(jobs) != 2 {
 		t.Errorf("processing jobs expect 2, actual %d", len(jobs))
 	}
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(110 * time.Millisecond)
 	jobs, _ = ProcessedJobs(time.Time{}, 0)
 	if len(jobs) != 2 {
 		t.Errorf("processing jobs expect 2, actual %d", len(jobs))
 	}
+	ctx := context.Background()
+	d.Stop(ctx)
 }
 
 func TestStop(t *testing.T) {
 	TruncateJob()
 
 	w := worker{}
-	d := NewDispatcher(4, w)
 	for i := 0; i < 8; i++ {
-		j := NewJob("test", []byte(`{"duration": 100}`), 5)
+		j := NewJob("test", []byte(`{"duration": 50}`), 5)
 		j.Save()
 	}
 
+	d := NewDispatcher(4, w)
 	d.Start(100)
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(110 * time.Millisecond)
 	jobs, _ := ProcessingJobs()
 	if len(jobs) != 4 {
 		t.Errorf("processing jobs expect 4, actual %d", len(jobs))
 	}
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(160 * time.Millisecond)
 
-	ctx, c := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, c := context.WithTimeout(context.Background(), 1*time.Second)
 	defer c()
 	d.Stop(ctx)
 
