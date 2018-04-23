@@ -13,13 +13,27 @@ type payloadJSON struct {
 
 type worker struct{}
 
-func (w worker) Run(job Job) bool {
+func (w worker) Run(ctx context.Context, job Job) bool {
 	var p payloadJSON
 	err := json.Unmarshal(job.Payload, &p)
 	if err != nil {
 		return false
 	}
-	time.Sleep(time.Duration(p.Duration) * time.Millisecond)
+	var elapsed time.Duration
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+Loop:
+	for {
+		select {
+		case <-ticker.C:
+			elapsed = time.Duration(elapsed) + 5*time.Millisecond
+			if elapsed > time.Duration(p.Duration)*time.Millisecond {
+				break Loop
+			}
+		case <-ctx.Done():
+			return false
+		}
+	}
 	return true
 }
 

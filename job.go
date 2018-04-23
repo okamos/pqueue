@@ -148,7 +148,7 @@ func (j *Job) Complete() {
 	j.Status = 1
 	j.RunCount++
 
-	log.Printf("Processed job %s", j.Payload)
+	log.Printf("Processed job id: %d, name: %s, payload: %s", j.ID, j.Name, j.Payload)
 }
 
 // Fail re-queues a job, or makes failed status if run count greater than max retries.
@@ -185,7 +185,7 @@ func (j *Job) Fail() {
 		j.RunAfter = j.RunAfter.Add(time.Duration(delay) * time.Second)
 	}
 	j.RunCount++
-	log.Printf("Failed job id: %d, payload: %s", j.ID, j.Payload)
+	log.Printf("Failed job id: %d, name: %s, payload: %s", j.ID, j.Name, j.Payload)
 }
 
 // ProcessingJobs returns jobs, which status is done
