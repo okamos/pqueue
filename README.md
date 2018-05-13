@@ -38,14 +38,15 @@ type payloadJSON struct {
 
 type worker struct{}
 
-func (w worker) Run(ctx context.Context, job pqueue.Job) bool {
+func (w worker) Run(ctx context.Context, job pqueue.Job) error {
 	var p payloadJSON
 	err := json.Unmarshal(job.Payload, &p)
+
 	if err != nil {
-		return false
+		return err
 	}
 	// do something
-	return true
+	return nil
 }
 
 func main() {

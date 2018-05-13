@@ -117,7 +117,7 @@ func TestFailJob(t *testing.T) {
 	job := NewJob("test", nil, 5)
 	job.Save()
 
-	job.Fail()
+	job.Fail("")
 
 	jobs, _ := LockJobs(1)
 	if len(jobs) != 0 {
@@ -127,7 +127,7 @@ func TestFailJob(t *testing.T) {
 	job = NewJob("test", nil, 5)
 	job.RunAfter = time.Now().Add(-4 * time.Hour)
 	job.Save()
-	job.Fail()
+	job.Fail("")
 
 	if job.Status != 0 {
 		t.Error("Job.Status should be 0")
@@ -135,7 +135,7 @@ func TestFailJob(t *testing.T) {
 	if job.RunCount != 1 {
 		t.Error("Job.RunCount should be 1")
 	}
-	job.Fail()
+	job.Fail("")
 
 	if job.Status != 0 {
 		t.Error("Job.Status should be 0")
@@ -143,7 +143,7 @@ func TestFailJob(t *testing.T) {
 	if job.RunCount != 2 {
 		t.Error("Job.RunCount should be 2")
 	}
-	job.Fail()
+	job.Fail("")
 
 	jobs, _ = FailedJobs(time.Time{}, 0)
 	if len(jobs) != 1 {

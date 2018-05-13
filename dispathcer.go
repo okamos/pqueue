@@ -9,7 +9,7 @@ import (
 
 // Worker is an interface of a worker
 type Worker interface {
-	Run(ctx context.Context, job Job) bool
+	Run(ctx context.Context, job Job) error
 }
 
 // NewDispatcher creates and returns dispatcher
@@ -72,12 +72,12 @@ func (d *Dispatcher) Start(interval time.Duration) {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Duration(job.Timeout)*time.Second)
 					defer cancel()
 
-					isSuccess := d.worker.Run(ctx, job)
+					err := d.worker.Run(ctx, job)
 					job.Elapsed = time.Now().Sub(start).Seconds()
-					if isSuccess {
-						job.Complete()
+					if err != nil {
+						job.Fail(err.Error())
 					} else {
-						job.Fail()
+						job.Complete()
 					}
 				}(job)
 			case <-d.stopLoop:

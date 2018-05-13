@@ -13,11 +13,11 @@ type payloadJSON struct {
 
 type worker struct{}
 
-func (w worker) Run(ctx context.Context, job Job) bool {
+func (w worker) Run(ctx context.Context, job Job) error {
 	var p payloadJSON
 	err := json.Unmarshal(job.Payload, &p)
 	if err != nil {
-		return false
+		return err
 	}
 	var elapsed time.Duration
 	ticker := time.NewTicker(5 * time.Millisecond)
@@ -31,10 +31,10 @@ Loop:
 				break Loop
 			}
 		case <-ctx.Done():
-			return false
+			return ctx.Err()
 		}
 	}
-	return true
+	return nil
 }
 
 func TestStart(t *testing.T) {
