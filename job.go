@@ -74,7 +74,7 @@ func (j *Job) Save() error {
 		}
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO "job" (name,payload,status,priority,run_after,timeout,run_count,retry_delay) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`)
+	stmt, err := db.Prepare(`INSERT INTO "job" (name,payload,status,priority,run_after,timeout,run_count,retry_delay,last_error) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'') RETURNING id`)
 	if err != nil {
 		return err
 	}
