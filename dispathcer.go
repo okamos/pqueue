@@ -68,10 +68,12 @@ func (d *Dispatcher) Start(interval time.Duration) {
 					defer func() { <-d.sem }()
 					defer wg.Done()
 
+					start := time.Now()
 					ctx, cancel := context.WithTimeout(context.Background(), time.Duration(job.Timeout)*time.Second)
 					defer cancel()
 
 					isSuccess := d.worker.Run(ctx, job)
+					job.Elapsed = time.Now().Sub(start).Seconds()
 					if isSuccess {
 						job.Complete()
 					} else {

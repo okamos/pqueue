@@ -90,7 +90,7 @@ func main() {
 	})
 	http.HandleFunc("/jobs", func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 50; i++ {
-			job := pqueue.NewJob("sleep", []byte(fmt.Sprintf(`{"second":%d}`, rand.Intn(50)+1)), 20)
+			job := pqueue.NewJob("sleep", []byte(fmt.Sprintf(`{"duration":%d}`, rand.Intn(50)+1)), 20)
 			job.Save()
 		}
 		w.WriteHeader(http.StatusOK)

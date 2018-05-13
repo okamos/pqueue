@@ -42,6 +42,7 @@ type Job struct {
 	Timeout    uint            `json:"time_out" validate:"gt=0"`
 	RunCount   uint            `json:"run_count"`
 	RetryDelay uint            `json:"retry_delay"` // second
+	Elapsed    float64         `json:"elapsed"`
 }
 
 // NewJob creates a job. NOTE: timeout should be greater than 0.
@@ -134,13 +135,13 @@ func ReleaseJobs() error {
 
 // Complete done a job, or re-queue a job if failed
 func (j *Job) Complete() {
-	stmt, err := db.Prepare(`UPDATE "job" SET status = 1, run_count = $2 WHERE ID = $1 RETURNING pg_advisory_unlock($1)`)
+	stmt, err := db.Prepare(`UPDATE "job" SET status = 1, run_count = $2, elapsed = $3 WHERE ID = $1 RETURNING pg_advisory_unlock($1)`)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	_, err = stmt.Exec(j.ID, j.RunCount+1)
+	_, err = stmt.Exec(j.ID, j.RunCount+1, j.Elapsed)
 	if err != nil {
 		log.Print(err)
 		return
@@ -156,13 +157,13 @@ func (j *Job) Fail() {
 	runCount := j.RunCount + 1
 
 	if runCount >= jobConfig.MaxRetryCount {
-		stmt, err := db.Prepare(`UPDATE "job" SET status = 2, run_count = $2 WHERE id = $1 RETURNING pg_advisory_unlock($1)`)
+		stmt, err := db.Prepare(`UPDATE "job" SET status = 2, run_count = $2, elapsed = $3 WHERE id = $1 RETURNING pg_advisory_unlock($1)`)
 		if err != nil {
 			log.Print(err)
 			return
 		}
 
-		_, err = stmt.Exec(j.ID, runCount)
+		_, err = stmt.Exec(j.ID, runCount, j.Elapsed)
 		if err != nil {
 			log.Print(err)
 			return
@@ -170,13 +171,19 @@ func (j *Job) Fail() {
 		j.Status = 2
 	} else {
 		delay := runCount*runCount*runCount*runCount + j.Timeout + j.RetryDelay + 15
-		stmt, err := db.Prepare(`UPDATE "job" SET run_count = $2, retry_delay = $3, run_after = $4, grabbed = null WHERE id = $1 RETURNING pg_advisory_unlock($1)`)
+		stmt, err := db.Prepare(`UPDATE "job" SET run_count = $2, retry_delay = $3, elapsed = $5, run_after = $4, grabbed = null WHERE id = $1 RETURNING pg_advisory_unlock($1)`)
 		if err != nil {
 			log.Print(err)
 			return
 		}
 
-		_, err = stmt.Exec(j.ID, runCount, delay, j.RunAfter.Add(time.Duration(delay)*time.Second))
+		_, err = stmt.Exec(
+			j.ID,
+			runCount,
+			delay,
+			j.RunAfter.Add(time.Duration(delay)*time.Second),
+			j.Elapsed,
+		)
 		if err != nil {
 			log.Print(err)
 			return
@@ -223,10 +230,10 @@ func ProcessedJobs(prevTime time.Time, prevID int64) ([]Job, error) {
 	var rows *sql.Rows
 	var err error
 	if prevTime.IsZero() {
-		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count FROM "job" WHERE status = 1 ORDER BY run_after desc, id desc limit 25`
+		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count, elapsed FROM "job" WHERE status = 1 ORDER BY run_after desc, id desc limit 25`
 		rows, err = db.Query(query)
 	} else {
-		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count FROM "job" WHERE status = 1 AND (run_after, id) < ($1, $2) ORDER BY run_after desc, id desc limit 25`
+		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count, elapsed FROM "job" WHERE status = 1 AND (run_after, id) < ($1, $2) ORDER BY run_after desc, id desc limit 25`
 		rows, err = db.Query(query, prevTime, prevID)
 	}
 	defer rows.Close()
@@ -247,6 +254,7 @@ func ProcessedJobs(prevTime time.Time, prevID int64) ([]Job, error) {
 			&j.RunAfter,
 			&j.Timeout,
 			&j.RunCount,
+			&j.Elapsed,
 		)
 		if err != nil {
 			return nil, err
@@ -261,10 +269,10 @@ func FailedJobs(prevTime time.Time, prevID int64) ([]Job, error) {
 	var rows *sql.Rows
 	var err error
 	if prevTime.IsZero() {
-		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count FROM "job" WHERE status = 2 ORDER BY run_after desc, id desc limit 25`
+		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count, elapsed FROM "job" WHERE status = 2 ORDER BY run_after desc, id desc limit 25`
 		rows, err = db.Query(query)
 	} else {
-		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count FROM "job" WHERE status = 2 AND (run_after, id) < ($1, $2) ORDER BY run_after desc, id desc limit 25`
+		query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count, elapsed FROM "job" WHERE status = 2 AND (run_after, id) < ($1, $2) ORDER BY run_after desc, id desc limit 25`
 		rows, err = db.Query(query, prevTime, prevID)
 	}
 	defer rows.Close()
@@ -285,6 +293,7 @@ func FailedJobs(prevTime time.Time, prevID int64) ([]Job, error) {
 			&j.RunAfter,
 			&j.Timeout,
 			&j.RunCount,
+			&j.Elapsed,
 		)
 		if err != nil {
 			return nil, err

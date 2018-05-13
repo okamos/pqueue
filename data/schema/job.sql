@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS "job" (
   timeout smallint,
   run_count smallint,
   retry_delay smallint,
-  grabbed timestamp with time zone
+  grabbed timestamp with time zone,
+  elapsed real
 );
 
 CREATE INDEX IF NOT EXISTS "job_next_at_key" ON "job" (run_after);
