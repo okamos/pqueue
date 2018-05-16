@@ -92,6 +92,21 @@ func (j *Job) Save() error {
 	return err
 }
 
+// Delete removes a job.
+func (j *Job) Delete() error {
+	stmt, err := db.Prepare(`DELETE FROM "job" WHERE id = $1 RETURNING id`)
+	if err != nil {
+		return err
+	}
+
+	var id int64
+	err = stmt.QueryRow(j.ID).Scan(&id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // LockJobs locks rows using advisory lock and returns jobs.
 func LockJobs(length int) ([]Job, error) {
 	rows, err := db.Query(`UPDATE "job" SET grabbed = now() WHERE id IN (SELECT id FROM (SELECT id FROM "job" WHERE grabbed is NULL AND run_after <= now() AND status = 0 ORDER BY priority desc LIMIT $1) potential_jobs WHERE pg_try_advisory_lock(id)) AND grabbed is NULL RETURNING id, name, payload, run_after, timeout, run_count, retry_delay`, length)
@@ -195,6 +210,38 @@ func (j *Job) Fail(errStr string) {
 	}
 	j.RunCount++
 	log.Printf("Failed job id: %d, name: %s, payload: %s", j.ID, j.Name, j.Payload)
+}
+
+// EnqueuedJobsByName returns jobs, specific job is not run yet.
+func EnqueuedJobsByName(name string) ([]Job, error) {
+	query := `SELECT id, name, payload, status, priority, run_after, timeout, run_count FROM "job" WHERE run_after > now() and name = $1 ORDER BY run_after desc, id desc`
+
+	rows, err := db.Query(query, name)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var jobs []Job
+	for rows.Next() {
+		j := Job{}
+		err := rows.Scan(
+			&j.ID,
+			&j.Name,
+			&j.Payload,
+			&j.Status,
+			&j.Priority,
+			&j.RunAfter,
+			&j.Timeout,
+			&j.RunCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, j)
+	}
+	return jobs, nil
 }
 
 // ProcessingJobs returns jobs, which status is done

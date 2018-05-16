@@ -88,6 +88,27 @@ func TestLockJobsLocksAndReturnsJobs(t *testing.T) {
 	}
 }
 
+func TestDeleteJob(t *testing.T) {
+	TruncateJob()
+
+	job := NewJob("test", nil, 5)
+	job.RunAfter = time.Now().Add(4 * time.Hour)
+	job.Save()
+
+	jobs, _ := EnqueuedJobsByName("test")
+	if len(jobs) != 1 {
+		t.Errorf("enqueued jobs expect 1, actual %d", len(jobs))
+		return
+	}
+
+	job.Delete()
+	jobs, _ = EnqueuedJobsByName("test")
+	if len(jobs) != 0 {
+		t.Errorf("enqueued jobs expect 0, actual %d", len(jobs))
+		return
+	}
+}
+
 func TestCompleteJob(t *testing.T) {
 	TruncateJob()
 
